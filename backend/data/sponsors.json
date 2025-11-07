@@ -1,0 +1,276 @@
+{
+  "sponsors": [
+    {
+      "id": "sponsor_001",
+      "name": "TechCorp Solutions",
+      "category": "Technology",
+      "preferred_event_types": ["tech", "workshop", "hackathon", "conference"],
+      "contact": {
+        "email": "partnerships@techcorp.com",
+        "phone": "+1-555-0123",
+        "contact_person": "Sarah Chen",
+        "title": "Partnership Manager"
+      },
+      "budget_range": {
+        "min": 5000,
+        "max": 25000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Gold", "Silver", "Bronze"],
+      "location": "San Francisco, CA",
+      "industry": "Software Development",
+      "company_size": "500-1000",
+      "past_partnerships": true,
+      "description": "Leading software development company specializing in AI and cloud solutions",
+      "website": "https://techcorp.com",
+      "values": ["innovation", "education", "sustainability"],
+      "sponsorship_interests": ["student development", "coding competitions", "tech workshops"]
+    },
+    {
+      "id": "sponsor_002", 
+      "name": "Green Earth Foundation",
+      "category": "Environmental",
+      "preferred_event_types": ["cultural", "social", "conference", "workshop"],
+      "contact": {
+        "email": "events@greenearth.org",
+        "phone": "+1-555-0234",
+        "contact_person": "Michael Rodriguez", 
+        "title": "Community Outreach Director"
+      },
+      "budget_range": {
+        "min": 2000,
+        "max": 15000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Eco-Champion", "Green-Supporter"],
+      "location": "Portland, OR",
+      "industry": "Environmental Conservation",
+      "company_size": "50-200",
+      "past_partnerships": false,
+      "description": "Non-profit foundation promoting environmental awareness and sustainability",
+      "website": "https://greenearth.org",
+      "values": ["sustainability", "community", "education"],
+      "sponsorship_interests": ["environmental awareness", "sustainability projects", "community impact"]
+    },
+    {
+      "id": "sponsor_003",
+      "name": "DataViz Analytics",
+      "category": "Technology",
+      "preferred_event_types": ["tech", "hackathon", "workshop", "conference"],
+      "contact": {
+        "email": "sponsor@dataviz.com",
+        "phone": "+1-555-0345",
+        "contact_person": "Jennifer Liu",
+        "title": "University Relations Manager"
+      },
+      "budget_range": {
+        "min": 3000,
+        "max": 18000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Data-Gold", "Analytics-Silver", "Insight-Bronze"],
+      "location": "Austin, TX",
+      "industry": "Data Analytics",
+      "company_size": "200-500",
+      "past_partnerships": true,
+      "description": "Data analytics company helping businesses make data-driven decisions",
+      "website": "https://dataviz.com",
+      "values": ["data-driven decisions", "innovation", "student empowerment"],
+      "sponsorship_interests": ["data science competitions", "analytics workshops", "student projects"]
+    },
+    {
+      "id": "sponsor_004",
+      "name": "Creative Arts Collective",
+      "category": "Arts & Culture",
+      "preferred_event_types": ["cultural", "social", "festival", "exhibition"],
+      "contact": {
+        "email": "partnerships@creativearts.com",
+        "phone": "+1-555-0456",
+        "contact_person": "Amanda Foster",
+        "title": "Cultural Programs Director"
+      },
+      "budget_range": {
+        "min": 1500,
+        "max": 12000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Artistic-Patron", "Creative-Supporter"],
+      "location": "New York, NY",
+      "industry": "Arts & Entertainment",
+      "company_size": "25-50",
+      "past_partnerships": true,
+      "description": "Artist collective promoting creative expression and cultural diversity",
+      "website": "https://creativearts.com",
+      "values": ["creativity", "diversity", "artistic expression"],
+      "sponsorship_interests": ["art exhibitions", "cultural festivals", "creative workshops"]
+    },
+    {
+      "id": "sponsor_005",
+      "name": "FitLife Sports Gear",
+      "category": "Sports & Health",
+      "preferred_event_types": ["sports", "social", "fitness", "competition"],
+      "contact": {
+        "email": "marketing@fitlifegear.com",
+        "phone": "+1-555-0567",
+        "contact_person": "David Kumar",
+        "title": "Brand Marketing Manager"
+      },
+      "budget_range": {
+        "min": 2500,
+        "max": 20000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Champion", "Athletic", "Supporter"],
+      "location": "Denver, CO",
+      "industry": "Sports Equipment",
+      "company_size": "100-300",
+      "past_partnerships": false,
+      "description": "Sports equipment manufacturer focused on fitness and active lifestyles",
+      "website": "https://fitlifegear.com",
+      "values": ["health", "fitness", "community"],
+      "sponsorship_interests": ["sports events", "fitness challenges", "health awareness"]
+    },
+    {
+      "id": "sponsor_006",
+      "name": "EduTech Innovations",
+      "category": "Education Technology",
+      "preferred_event_types": ["tech", "workshop", "conference", "hackathon"],
+      "contact": {
+        "email": "partnerships@edutech.edu",
+        "phone": "+1-555-0678",
+        "contact_person": "Dr. Lisa Wang",
+        "title": "Academic Partnerships Lead"
+      },
+      "budget_range": {
+        "min": 4000,
+        "max": 30000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Innovation-Partner", "Education-Ally", "Learning-Supporter"],
+      "location": "Boston, MA",
+      "industry": "Educational Technology",
+      "company_size": "300-500",
+      "past_partnerships": true,
+      "description": "EdTech company developing innovative learning platforms and educational tools",
+      "website": "https://edutech.edu",
+      "values": ["education", "innovation", "accessibility"],
+      "sponsorship_interests": ["educational technology", "student learning", "innovation challenges"]
+    },
+    {
+      "id": "sponsor_007",
+      "name": "Local Business Chamber",
+      "category": "Business & Commerce",
+      "preferred_event_types": ["business", "networking", "conference", "workshop"],
+      "contact": {
+        "email": "events@localbusiness.org",
+        "phone": "+1-555-0789",
+        "contact_person": "Robert Thompson",
+        "title": "Event Coordinator"
+      },
+      "budget_range": {
+        "min": 1000,
+        "max": 8000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Business-Leader", "Commerce-Partner"],
+      "location": "Local Area",
+      "industry": "Business Development",
+      "company_size": "10-25",
+      "past_partnerships": true,
+      "description": "Local chamber supporting small businesses and entrepreneurship",
+      "website": "https://localbusiness.org",
+      "values": ["entrepreneurship", "local community", "business growth"],
+      "sponsorship_interests": ["business networking", "entrepreneurship events", "local community"]
+    },
+    {
+      "id": "sponsor_008",
+      "name": "Quantum Research Labs",
+      "category": "Research & Science",
+      "preferred_event_types": ["tech", "research", "conference", "workshop"],
+      "contact": {
+        "email": "outreach@quantumresearch.com",
+        "phone": "+1-555-0890",
+        "contact_person": "Dr. Elena Vasquez",
+        "title": "Research Outreach Manager"
+      },
+      "budget_range": {
+        "min": 6000,
+        "max": 35000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Research-Partner", "Science-Advocate", "Innovation-Supporter"],
+      "location": "Seattle, WA",
+      "industry": "Scientific Research",
+      "company_size": "100-200",
+      "past_partnerships": false,
+      "description": "Cutting-edge research laboratory specializing in quantum computing and advanced physics",
+      "website": "https://quantumresearch.com",
+      "values": ["scientific advancement", "research excellence", "education"],
+      "sponsorship_interests": ["scientific conferences", "research presentations", "STEM education"]
+    },
+    {
+      "id": "sponsor_009",
+      "name": "Community Health Partners",
+      "category": "Healthcare",
+      "preferred_event_types": ["health", "social", "workshop", "community"],
+      "contact": {
+        "email": "community@healthpartners.org",
+        "phone": "+1-555-0901",
+        "contact_person": "Maria Garcia",
+        "title": "Community Health Manager"
+      },
+      "budget_range": {
+        "min": 2000,
+        "max": 12000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Health-Champion", "Wellness-Partner"],
+      "location": "Phoenix, AZ",
+      "industry": "Healthcare",
+      "company_size": "200-400",
+      "past_partnerships": true,
+      "description": "Healthcare organization focused on community wellness and health education",
+      "website": "https://healthpartners.org",
+      "values": ["health", "community wellness", "education"],
+      "sponsorship_interests": ["health awareness", "wellness programs", "community health"]
+    },
+    {
+      "id": "sponsor_010",
+      "name": "NextGen Startups Fund",
+      "category": "Investment & Finance",
+      "preferred_event_types": ["business", "tech", "hackathon", "pitch"],
+      "contact": {
+        "email": "investments@nextgenfund.com",
+        "phone": "+1-555-1012",
+        "contact_person": "Alex Chen",
+        "title": "Investment Associate"
+      },
+      "budget_range": {
+        "min": 5000,
+        "max": 40000,
+        "currency": "USD"
+      },
+      "sponsorship_tiers": ["Venture-Partner", "Startup-Supporter", "Innovation-Backer"],
+      "location": "Palo Alto, CA",
+      "industry": "Venture Capital",
+      "company_size": "20-50",
+      "past_partnerships": false,
+      "description": "Venture capital fund investing in early-stage technology startups",
+      "website": "https://nextgenfund.com",
+      "values": ["innovation", "entrepreneurship", "technology advancement"],
+      "sponsorship_interests": ["startup competitions", "pitch events", "entrepreneurship workshops"]
+    }
+  ],
+  "event_type_mappings": {
+    "tech": ["Technology", "Education Technology", "Research & Science"],
+    "hackathon": ["Technology", "Education Technology", "Investment & Finance"],
+    "workshop": ["Technology", "Education Technology", "Arts & Culture", "Business & Commerce", "Healthcare"],
+    "conference": ["Technology", "Business & Commerce", "Research & Science", "Environmental"],
+    "cultural": ["Arts & Culture", "Environmental"],
+    "social": ["Arts & Culture", "Sports & Health", "Healthcare", "Environmental"],
+    "sports": ["Sports & Health"],
+    "business": ["Business & Commerce", "Investment & Finance"],
+    "health": ["Healthcare", "Sports & Health"],
+    "research": ["Research & Science", "Technology"]
+  }
+}

@@ -1,0 +1,146 @@
+"""
+Firebase configuration and connection utilities for Apokria.
+Handles Firestore database operations and authentication.
+"""
+
+import os
+import json
+import firebase_admin
+from firebase_admin import credentials, firestore
+from typing import Optional, Dict, Any
+import logging
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+class FirebaseManager:
+    """Firebase Admin SDK manager for Firestore operations"""
+    
+    def __init__(self):
+        self.app: Optional[firebase_admin.App] = None
+        self.db: Optional[firestore.Client] = None
+        
+    def initialize(self):
+        """Initialize Firebase Admin SDK"""
+        try:
+            if not firebase_admin._apps:
+                # Check for service account key file
+                service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
+                
+                if service_account_path and os.path.exists(service_account_path):
+                    # Use service account file
+                    cred = credentials.Certificate(service_account_path)
+                    self.app = firebase_admin.initialize_app(cred)
+                else:
+                    # Use service account JSON from environment variable
+                    service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+                    if service_account_json:
+                        service_account_info = json.loads(service_account_json)
+                        cred = credentials.Certificate(service_account_info)
+                        self.app = firebase_admin.initialize_app(cred)
+                    else:
+                        # Use default credentials (for local development)
+                        logger.warning("No Firebase credentials found. Using default credentials.")
+                        self.app = firebase_admin.initialize_app()
+                        
+                logger.info("Firebase Admin SDK initialized successfully")
+            else:
+                self.app = firebase_admin.get_app()
+                
+            self.db = firestore.client(app=self.app)
+            logger.info("Firestore client initialized")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize Firebase: {e}")
+            raise
+    
+    def get_collection(self, collection_name: str):
+        """Get a Firestore collection reference"""
+        if not self.db:
+            raise RuntimeError("Firestore not initialized. Call initialize() first.")
+        return self.db.collection(collection_name)
+    
+    def health_check(self) -> bool:
+        """Check if Firebase connection is healthy"""
+        try:
+            if self.db:
+                # Try to read from a test collection
+                test_ref = self.db.collection('health_check').limit(1)
+                list(test_ref.stream())  # This will raise if connection fails
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Firebase health check failed: {e}")
+            return False
+
+# Global Firebase instance
+firebase_manager = FirebaseManager()
+
+async def init_firebase():
+    """Initialize Firebase connection on startup"""
+    firebase_manager.initialize()
+    logger.info("Firebase initialized")
+
+async def close_firebase():
+    """Close Firebase connection on shutdown"""
+    try:
+        if firebase_manager.app:
+            firebase_admin.delete_app(firebase_manager.app)
+        logger.info("Firebase connection closed")
+    except Exception as e:
+        logger.warning(f"Error closing Firebase: {e}")
+
+def get_firestore_client():
+    """Get Firestore client instance"""
+    return firebase_manager.db
+
+def get_events_collection():
+    """Get events collection from Firestore"""
+    return firebase_manager.get_collection("events")
+
+def get_users_collection():
+    """Get users collection from Firestore"""
+    return firebase_manager.get_collection("users")
+
+def get_analytics_collection():
+    """Get analytics collection from Firestore"""
+    return firebase_manager.get_collection("analytics")
+
+# Event data model helpers
+class EventDocument:
+    """Helper class for Event document structure in Firestore"""
+    
+    @staticmethod
+    def create_event_doc(
+        title: str,
+        start_time: datetime,
+        end_time: datetime,
+        venue: str,
+        organizer: str = None,
+        description: str = None,
+        category: str = None,
+        capacity: int = None,
+        budget: float = None
+    ) -> Dict[str, Any]:
+        """Create a standardized event document for Firestore"""
+        return {
+            "title": title,
+            "description": description or "",
+            "start_time": start_time,
+            "end_time": end_time,
+            "venue": venue,
+            "organizer": organizer or "",
+            "category": category or "general",
+            "capacity": capacity or 0,
+            "budget": budget or 0.0,
+            "status": "scheduled",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+    
+    @staticmethod
+    def update_event_doc(**kwargs) -> Dict[str, Any]:
+        """Create an update document for Firestore"""
+        update_data = {k: v for k, v in kwargs.items() if v is not None}
+        update_data["updated_at"] = datetime.utcnow()
+        return update_data

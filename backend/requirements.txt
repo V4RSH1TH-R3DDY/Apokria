@@ -1,7 +1,13 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 langchain
 openai
 pymongo
+motor
 python-dotenv
+firebase-admin
+python-dateutil
+pytest
+pytest-asyncio
+google-generativeai

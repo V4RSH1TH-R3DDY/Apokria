@@ -1,0 +1,9 @@
+/**
+ * Main styles entry point for Apokria.
+ * Import this file to get all styles.
+ */
+
+@import './globals.css';
+@import './components.css';
+
+/* Additional application-specific styles can be added here */
