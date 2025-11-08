@@ -33,3 +33,7 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+ 
+# Firebase service account (keep out of the repo)
+backend/firebase-service-account.json
+backend/firebase-service-account.new.json

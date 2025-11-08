@@ -11,6 +11,8 @@ from dateutil import parser
 
 from database.firebase_connection import get_events_collection, EventDocument
 from utils.api_helpers import AgentHelper
+from utils.google_calendar import create_google_calendar_event
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -327,6 +329,25 @@ class SchedulerAgent:
             # Add to Firestore
             doc_ref = self.events_collection.add(event_doc)
             event_doc['id'] = doc_ref[1].id
+
+            # Optionally publish to Google Calendar if a token is provided
+            google_token = os.getenv("GOOGLE_CALENDAR_TOKEN")
+            if google_token:
+                try:
+                    cal_event = create_google_calendar_event(
+                        {
+                            "title": event_doc['title'],
+                            "description": event_doc.get('description', ''),
+                            "venue": event_doc.get('venue'),
+                            "start_time": event_doc['start_time'].isoformat(),
+                            "end_time": event_doc['end_time'].isoformat()
+                        },
+                        google_token
+                    )
+                    if cal_event and cal_event.get('htmlLink'):
+                        event_doc['google_calendar_link'] = cal_event['htmlLink']
+                except Exception as e:
+                    logger.warning(f"Failed to publish event to Google Calendar: {e}")
             
             AgentHelper.log_agent_action(
                 agent_name="SchedulerAgent",
