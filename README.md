@@ -98,8 +98,7 @@ All agents communicate via a lightweight coordination layer that pushes updates 
 | Agent | Core Responsibility | Key Outputs |
 | --- | --- | --- |
 | 🗓️ **Scheduler Agent** | Maintain a clash-free calendar, detect overlaps, and recommend alternate slots. | Suggested schedules, availability matrix, conflict alerts |
-| 🧩 **Flow Agent** | Design end-to-end event itineraries based on event type, duration, and constraints. | Session-by-session agenda, buffer slots, staffing cues |
-| 🤝 **Sponsor Agent** | Match events with relevant sponsors and auto-generate outreach material. | Ranked sponsor list, contact cards, email pitch drafts |
+| 🧩 **Flow Agent** | Design end-to-end event itineraries based on event type, duration, and constraints. | Session-by-session agenda, buffer slots, staffing cues 
 | 🗃️ **Content Agent** | Produce branded content—emails, invites, posters, certificates. | AI-generated creatives, copy blocks, email sequences |
 | 📊 **Analytics Agent** | Track participation, satisfaction, and resource usage across events. | KPI dashboards, actionable insights, post-event summaries |
 
@@ -327,7 +326,6 @@ GenAI/
 | --- | --- | --- | --- | --- |
 | Scheduler | ✅ **Complete** | Event metadata, existing bookings | Time-slot scoring, conflict detection, priority weighting | List of recommended slots, clash report |
 | Flow | ✅ **Complete** | Event type, duration, attendee profile, budget tier | Template selection, buffer insertion, speaker/resource cues | Structured agenda JSON + human-readable summary |
-| Sponsor | ✅ **Complete** | Event domain, audience size, budget ask | Dataset filtering, lead scoring, email template filling | Ranked sponsor prospects, outreach copy, call-to-action checklist |
 | Content | ⏳ **Pending** | Approved agenda, sponsor list, branding tokens | Prompt chaining for copy + image generation hooks | Emails, invites, poster briefs, certificate text |
 | Analytics | ⏳ **Pending** | Event lifecycle data, attendance stats, sponsor response logs | KPI computation, trend spotting, anomaly detection | Dashboard widgets, recommendations, follow-up tasks |
 
@@ -367,5 +365,7 @@ GenAI/
 ---
 
 ✨ **Apokria makes campus events effortless.** Use this playbook to rally your team, ship fast, and wow the judges.
+
 Team Name: THE 4 HORSEMEN OF THE APOCALYPSE
+
 Team Members: Ananya, Sunidhi, Varshith, Harsh
