@@ -1,17 +1,20 @@
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence } from "framer-motion";
 import Iridescence from "./components/Iridescence";
 import Dock from "./components/Dock";
 import CardNav from "./components/CardNav";
-import { VscGraphLine, VscArchive, VscOrganization, VscCalendar } from 'react-icons/vsc';
+import { VscGraphLine, VscArchive, VscOrganization, VscCalendar, VscPlay, VscMegaphone } from 'react-icons/vsc';
 import { useWindowManager } from "./components/WindowManager";
 import Window from "./components/Window";
 import HomePageSimple from "./pages/HomePageSimple";
 import EventsPage from "./pages/EventsPage";
-import SponsorsPage from "./pages/SponsorsPage";
 import ScheduleLogPage from "./pages/ScheduleLogPage";
+import FlowPage from "./pages/FlowPage";
+import ContentPage from "./pages/ContentPage";
+import SchedulerPage from "./pages/SchedulerPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import { EventProvider, useEvents } from "./contexts/EventContext";
 import { ToastProvider } from "./contexts/ToastContext";
 
@@ -24,12 +27,12 @@ export default function App() {
       icon: <VscGraphLine size={18} />, 
       label: 'Analytics', 
       onClick: (position?: { x: number; y: number }) => openWindow({ 
-        id: 'home', 
-        title: 'Analytics', 
-        content: <HomePageSimple />,
+        id: 'analytics', 
+        title: 'Analytics Dashboard', 
+        content: <AnalyticsPage />,
         dockIconPosition: position
       }),
-      isActive: windows.some(w => w.id === 'home' && !w.isMinimized)
+      isActive: windows.some(w => w.id === 'analytics' && !w.isMinimized)
     },
     { 
       icon: <VscArchive size={18} />, 
@@ -55,14 +58,36 @@ export default function App() {
     },
     { 
       icon: <VscCalendar size={18} />, 
-      label: 'Schedule', 
+      label: 'Scheduler', 
       onClick: (position?: { x: number; y: number }) => openWindow({ 
-        id: 'schedule', 
-        title: 'Schedule Log', 
-        content: <ScheduleLogPage />,
+        id: 'scheduler', 
+        title: 'AI Event Scheduler', 
+        content: <SchedulerPage />,
         dockIconPosition: position
       }),
-      isActive: windows.some(w => w.id === 'schedule' && !w.isMinimized)
+      isActive: windows.some(w => w.id === 'scheduler' && !w.isMinimized)
+    },
+    { 
+      icon: <VscPlay size={18} />, 
+      label: 'Flow', 
+      onClick: (position?: { x: number; y: number }) => openWindow({ 
+        id: 'flow', 
+        title: 'Event Flow', 
+        content: <FlowPage />,
+        dockIconPosition: position
+      }),
+      isActive: windows.some(w => w.id === 'flow' && !w.isMinimized)
+    },
+    { 
+      icon: <VscMegaphone size={18} />, 
+      label: 'Content', 
+      onClick: (position?: { x: number; y: number }) => openWindow({ 
+        id: 'content', 
+        title: 'Content Generator', 
+        content: <ContentPage />,
+        dockIconPosition: position
+      }),
+      isActive: windows.some(w => w.id === 'content' && !w.isMinimized)
     },
   ];
 

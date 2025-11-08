@@ -52,7 +52,7 @@ class MongoDB:
     
     def get_collection(self, collection_name: str):
         """Get a collection from the database"""
-        if not self.database:
+        if self.database is None:
             raise RuntimeError("Database not connected. Call connect() first.")
         return self.database[collection_name]
     
@@ -89,6 +89,13 @@ async def get_sponsors_collection():
 async def get_analytics_collection():
     """Get analytics collection"""
     return mongodb.get_collection("analytics")
+
+async def get_mongo_db():
+    """Get MongoDB database instance for auth and other services"""
+    db_healthy = await mongodb.health_check()
+    if not db_healthy:
+        await mongodb.connect()
+    return mongodb.database
 
 # Database initialization and cleanup
 async def init_database():

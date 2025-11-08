@@ -5,12 +5,20 @@ from agents.scheduler import scheduler_agent
 from agents.flow import flow_agent, FlowRequest
 from agents.sponsor import SponsorAgent
 from agents.content import content_agent
+from agents.analytics import analytics_agent
 from database.firebase_connection import init_firebase, close_firebase
 from database.mongo_connection import init_database, close_database
+from routers.auth import router as auth_router
+from routers.events import router as events_router
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
+import logging
 import os
 from dotenv import load_dotenv
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -24,11 +32,20 @@ app = FastAPI(title="Apokria API", description="Multi-agent AI event orchestrato
 # CORS middleware to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Vite dev server
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:5173", 
+        "http://localhost:4000",  # New frontend port
+        "http://localhost:8080"   # Mock testing port
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(auth_router)
+app.include_router(events_router)
 
 # Startup and shutdown events
 @app.on_event("startup")
@@ -309,6 +326,162 @@ async def flow_agent_health():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
 
+# Frontend-compatible endpoints
+@app.post("/generate/flow")
+async def generate_flow_frontend(request: FlowRequest):
+    """Generate event flow - Frontend compatible endpoint"""
+    try:
+        response = flow_agent.generate_flow(request)
+        return response
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Flow generation failed: {str(e)}")
+
+class ContentRequest(BaseModel):
+    event_name: str
+    event_type: str
+    target_audience: str
+    social_platforms: list[str]
+    content_goals: list[str]
+    brand_tone: str
+    additional_context: Optional[str] = ""
+
+@app.post("/generate/content")
+async def generate_content_frontend(request: ContentRequest):
+    """Generate marketing content - Frontend compatible endpoint"""
+    try:
+        logger.info(f"Content generation request: {request}")
+        
+        # Create event dict from request
+        event_data = {
+            "title": request.event_name,
+            "event_type": request.event_type,
+            "audience": request.target_audience,
+            "date": "TBD",
+            "venue": "TBD"
+        }
+        
+        # Generate content based on platforms and goals
+        generated_content_parts = []
+        
+        # Always generate at least one piece of content
+        if not request.social_platforms:
+            # Default to general content if no platforms specified
+            general_content = content_agent.generate_social_post(
+                event=event_data,
+                platform="general",
+                length=500
+            )
+            generated_content_parts.append(f"## General Marketing Content\n\n{general_content}")
+        else:
+            # Generate content for each selected platform
+            for platform in request.social_platforms:
+                try:
+                    if platform.lower() in ["twitter", "instagram", "linkedin", "facebook", "tiktok"]:
+                        social_content = content_agent.generate_social_post(
+                            event=event_data,
+                            platform=platform.lower(),
+                            length=280 if platform.lower() == "twitter" else 500
+                        )
+                        generated_content_parts.append(f"## {platform.title()} Content\n\n{social_content}")
+                    elif platform.lower() == "email":
+                        email_content = content_agent.generate_email(
+                            event=event_data, 
+                            tone=request.brand_tone
+                        )
+                        generated_content_parts.append(f"## Email Content\n\n{email_content}")
+                    else:
+                        # Generic content for other platforms
+                        generic_content = content_agent.generate_social_post(
+                            event=event_data,
+                            platform="general",
+                            length=500
+                        )
+                        generated_content_parts.append(f"## {platform.title()} Content\n\n{generic_content}")
+                except Exception as e:
+                    logger.warning(f"Error generating content for {platform}: {e}")
+                    continue
+        
+        # Combine all content
+        if not generated_content_parts:
+            # Fallback if all generation failed
+            fallback_content = f"""# Content Strategy for {request.event_name}
+
+## Event Overview
+- **Type**: {request.event_type.title()}
+- **Audience**: {request.target_audience.title()}
+- **Goals**: {', '.join(request.content_goals)}
+- **Tone**: {request.brand_tone.title()}
+
+## Sample Content
+Get ready for an amazing {request.event_type}! Join us for {request.event_name} - an event designed specifically for {request.target_audience}.
+
+🎯 What to expect:
+• Expert insights and hands-on learning
+• Networking opportunities with like-minded individuals
+• Practical takeaways you can implement immediately
+
+📅 Save the date and follow us for updates!
+
+#Event #Learning #{request.event_type.title().replace(' ', '')}
+
+*This is demo content. Configure your LLM API keys for personalized, AI-generated content.*"""
+            generated_content_parts.append(fallback_content)
+        
+        final_content = "\n\n---\n\n".join(generated_content_parts)
+        
+        # Create response in the format expected by frontend
+        response = {
+            "event_name": request.event_name,
+            "generated_content": final_content,
+            "content_type": "multi-platform",
+            "metadata": {
+                "generator": "demo" if "demo" in final_content.lower() else "ai",
+                "content_length": len(final_content),
+                "platform_optimized": request.social_platforms
+            },
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        logger.info(f"Content generation successful for {request.event_name}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Content generation error: {e}")
+        # Return a fallback response instead of failing
+        fallback_response = {
+            "event_name": request.event_name,
+            "generated_content": f"""# {request.event_name} - Content Strategy
+
+## Professional Event Marketing Content
+
+**Event Type:** {request.event_type.title()}
+**Target Audience:** {request.target_audience.title()}
+**Brand Tone:** {request.brand_tone.title()}
+
+### Marketing Message
+Announcing {request.event_name}! This {request.event_type} is designed for {request.target_audience} who want to enhance their skills and connect with peers.
+
+### Call to Action
+🚀 Register now and secure your spot!
+📱 Follow us for updates and behind-the-scenes content
+💡 Share this post to spread the word
+
+### Hashtags
+#{request.event_name.replace(' ', '')} #{request.event_type.replace(' ', '')} #Event #Professional
+
+*Demo content generated. Add your LLM API keys for AI-powered personalization.*""",
+            "content_type": "fallback",
+            "metadata": {
+                "generator": "fallback",
+                "content_length": 500,
+                "platform_optimized": request.social_platforms or ["general"]
+            },
+            "created_at": datetime.utcnow().isoformat()
+        }
+        return fallback_response
+
 @app.post("/api/sponsors")
 async def recommend_sponsors(request: SponsorRecommendationRequest):
     """
@@ -389,47 +562,148 @@ async def sponsor_agent_health():
 
 @app.post("/api/content")
 async def generate_content(request: dict):
-    """Generic content endpoint that routes to specific content generation.
+    """Enhanced content generation endpoint with multiple content types.
 
     Expected request shape:
     {
-        "type": "email" | "social" | "banner",
-        "event": {...},
-        // optional params per type
+        "event_name": str,
+        "event_type": str, 
+        "content_type": "description" | "social_media" | "email" | "flyer" | "announcement",
+        "tone": "professional" | "casual" | "exciting" | "formal",
+        "length": "short" | "medium" | "long",
+        "target_audience": str,
+        "key_points": [str],
+        "call_to_action": str
     }
     """
     try:
-        body = request
-        ctype = body.get("type")
-        event = body.get("event") or {}
-
-        if ctype == "email":
-            tone = body.get("tone", "professional")
-            length = body.get("length", "short")
-            result = content_agent.generate_email(event, tone=tone, length=length)
-            return APIResponse.success(data={"content": result}, message="Email generated")
-
-        if ctype == "social":
-            platform = body.get("platform", "twitter")
-            length = body.get("length", 280)
-            result = content_agent.generate_social_post(event, platform=platform, length=length)
-            return APIResponse.success(data={"content": result}, message="Social post generated")
-
-        if ctype == "banner":
-            size = body.get("size", "hero")
-            result = content_agent.generate_banner_text(event, size=size)
-            return APIResponse.success(data={"content": result}, message="Banner text generated")
-
-        return APIResponse.error("Invalid content type", status_code=400)
+        # Extract required fields
+        event_name = request.get("event_name")
+        event_type = request.get("event_type")
+        content_type = request.get("content_type", "description")
+        
+        if not event_name:
+            return APIResponse.error("event_name is required", status_code=400)
+        if not event_type:
+            return APIResponse.error("event_type is required", status_code=400)
+        
+        # For backward compatibility, also support legacy format
+        if content_type in ["email", "social", "banner"] and "event" in request:
+            event = request.get("event", {})
+            
+            if content_type == "email":
+                tone = request.get("tone", "professional")
+                length = request.get("length", "short")
+                result = content_agent.generate_email(event, tone=tone, length=length)
+                return APIResponse.success(data={"content": result}, message="Email generated")
+            
+            elif content_type == "social":
+                platform = request.get("platform", "twitter")
+                length = request.get("length", 280)
+                result = content_agent.generate_social_post(event, platform=platform, length=length)
+                return APIResponse.success(data={"content": result}, message="Social post generated")
+            
+            elif content_type == "banner":
+                size = request.get("size", "hero")
+                result = content_agent.generate_banner_text(event, size=size)
+                return APIResponse.success(data={"content": result}, message="Banner text generated")
+        
+        # New enhanced content generation
+        from agents.content import ContentAgent, ContentRequest
+        
+        content_agent_enhanced = ContentAgent()
+        
+        content_request = ContentRequest(
+            event_name=event_name,
+            event_type=event_type,
+            event_description=request.get("event_description"),
+            target_audience=request.get("target_audience", "Students and faculty"),
+            content_type=content_type,
+            tone=request.get("tone", "professional"),
+            length=request.get("length", "medium"),
+            key_points=request.get("key_points"),
+            call_to_action=request.get("call_to_action")
+        )
+        
+        response = await content_agent_enhanced.generate_content(content_request)
+        
+        return APIResponse.success(
+            data={
+                "event_name": response.event_name,
+                "content_type": response.content_type,
+                "generated_content": response.generated_content,
+                "metadata": response.metadata,
+                "created_at": response.created_at
+            },
+            message=f"{content_type.title()} content generated successfully"
+        )
+        
+    except ValueError as e:
+        return APIResponse.error(f"Invalid request: {e}", status_code=400)
     except Exception as e:
         return APIResponse.error(f"Content generation failed: {e}", status_code=500)
 
 @app.get("/api/analytics")
-async def get_analytics():
-    """Analytics Agent - Get stats and dashboards"""
-    return APIResponse.success(
-        message="Analytics agent endpoint - ready for implementation"
-    )
+async def get_analytics(
+    event_name: str = Query(..., description="Name of the event to analyze"),
+    event_type: str = Query(..., description="Type of event"),
+    analysis_type: str = Query("overview", description="Type of analysis: overview, attendance, engagement, performance"),
+    time_period: str = Query("event", description="Time period: event, pre-event, post-event, full")
+):
+    """Enhanced Analytics Agent - Generate comprehensive event analytics and insights"""
+    try:
+        from agents.analytics import AnalyticsAgent, AnalyticsRequest
+        
+        analytics_agent_enhanced = AnalyticsAgent()
+        
+        analytics_request = AnalyticsRequest(
+            event_name=event_name,
+            event_type=event_type,
+            analysis_type=analysis_type,
+            time_period=time_period
+        )
+        
+        response = await analytics_agent_enhanced.generate_analytics(analytics_request)
+        
+        return APIResponse.success(
+            data={
+                "event_name": response.event_name,
+                "analysis_type": response.analysis_type,
+                "metrics": response.metrics,
+                "insights": response.insights,
+                "recommendations": response.recommendations,
+                "charts_data": response.charts_data,
+                "created_at": response.created_at
+            },
+            message=f"Analytics generated for {event_name}"
+        )
+        
+    except ValueError as e:
+        return APIResponse.error(f"Invalid request: {e}", status_code=400)
+    except Exception as e:
+        return APIResponse.error(f"Analytics generation failed: {e}", status_code=500)
+
+@app.get("/api/analytics/health")
+async def analytics_health():
+    """Analytics Agent health check"""
+    try:
+        return APIResponse.success(
+            data={"status": "healthy", "agent": "AnalyticsAgent"},
+            message="Analytics agent is operational"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analytics health check failed: {str(e)}")
+
+@app.get("/api/content/health") 
+async def content_health():
+    """Content Agent health check"""
+    try:
+        return APIResponse.success(
+            data={"status": "healthy", "agent": "ContentAgent"},
+            message="Content agent is operational"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Content health check failed: {str(e)}")
 
 # Additional event management endpoints
 @app.get("/api/events")

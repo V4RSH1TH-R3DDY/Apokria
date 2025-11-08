@@ -11,3 +11,6 @@ python-dateutil
 pytest
 pytest-asyncio
 google-generativeai
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart

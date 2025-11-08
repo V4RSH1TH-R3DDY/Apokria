@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 async def _insert(collection_name: str, doc: Dict[str, Any]):
     try:
-        if not mongodb.database:
+        # Check if database is connected using the health check method
+        db_healthy = await mongodb.health_check()
+        if not db_healthy:
             # Not connected yet
             logger.debug("MongoDB not connected; skipping log insert")
             return

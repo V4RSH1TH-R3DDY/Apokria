@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apokria Testing Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .agent-card {
+            transition: all 0.3s ease;
+        }
+        .agent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .response-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        .notification.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation Header -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-calendar-alt text-2xl"></i>
+                    <h1 class="text-2xl font-bold">Apokria Testing Dashboard</h1>
+                </div>
+                <div id="auth-status" class="flex items-center space-x-4">
+                    <div id="user-info" class="hidden">
+                        <span id="username" class="font-medium"></span>
+                        <span id="user-role" class="text-blue-200 text-sm"></span>
+                        <button id="logout-btn" class="ml-4 bg-blue-500 hover:bg-blue-700 px-3 py-1 rounded text-sm">
+                            Logout
+                        </button>
+                    </div>
+                    <div id="auth-buttons" class="space-x-2">
+                        <button id="login-btn" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded">
+                            Login
+                        </button>
+                        <button id="register-btn" class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded">
+                            Register
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Tab Navigation -->
+    <div class="container mx-auto px-6 py-6">
+        <div class="bg-white rounded-lg shadow-md mb-6">
+            <div class="flex border-b">
+                <button class="tab-btn px-6 py-3 border-b-2 border-blue-500 text-blue-600 font-medium" data-tab="overview">
+                    <i class="fas fa-home mr-2"></i>Overview
+                </button>
+                <button class="tab-btn px-6 py-3 text-gray-600 hover:text-blue-600" data-tab="auth">
+                    <i class="fas fa-lock mr-2"></i>Authentication
+                </button>
+                <button class="tab-btn px-6 py-3 text-gray-600 hover:text-blue-600" data-tab="scheduler">
+                    <i class="fas fa-calendar-check mr-2"></i>Scheduler Agent
+                </button>
+                <button class="tab-btn px-6 py-3 text-gray-600 hover:text-blue-600" data-tab="flow">
+                    <i class="fas fa-stream mr-2"></i>Flow Agent
+                </button>
+                <button class="tab-btn px-6 py-3 text-gray-600 hover:text-blue-600" data-tab="sponsor">
+                    <i class="fas fa-handshake mr-2"></i>Sponsor Agent
+                </button>
+                <button class="tab-btn px-6 py-3 text-gray-600 hover:text-blue-600" data-tab="content">
+                    <i class="fas fa-file-alt mr-2"></i>Content Agent
+                </button>
+                <button class="tab-btn px-6 py-3 text-gray-600 hover:text-blue-600" data-tab="analytics">
+                    <i class="fas fa-chart-bar mr-2"></i>Analytics
+                </button>
+            </div>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- System Status Card -->
+                <div class="agent-card bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">System Status</h3>
+                        <i class="fas fa-heartbeat text-green-500 text-xl"></i>
+                    </div>
+                    <div id="system-status" class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>API Server</span>
+                            <span id="api-status" class="text-green-500"><i class="fas fa-circle"></i> Online</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Database</span>
+                            <span id="db-status" class="text-yellow-500"><i class="fas fa-circle"></i> Checking...</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Authentication</span>
+                            <span id="auth-system-status" class="text-yellow-500"><i class="fas fa-circle"></i> Checking...</span>
+                        </div>
+                    </div>
+                    <button id="refresh-status" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded">
+                        Refresh Status
+                    </button>
+                </div>
+
+                <!-- Quick Test Card -->
+                <div class="agent-card bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Quick Tests</h3>
+                        <i class="fas fa-bolt text-yellow-500 text-xl"></i>
+                    </div>
+                    <div class="space-y-3">
+                        <button id="test-conflict" class="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded">
+                            Test Conflict Detection
+                        </button>
+                        <button id="test-flow" class="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded">
+                            Generate Event Flow
+                        </button>
+                        <button id="test-sponsors" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded">
+                            Find Sponsors
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Agent Stats Card -->
+                <div class="agent-card bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Agent Stats</h3>
+                        <i class="fas fa-robot text-blue-500 text-xl"></i>
+                    </div>
+                    <div id="agent-stats" class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>Active Agents</span>
+                            <span class="font-semibold">5</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Total Requests</span>
+                            <span class="font-semibold" id="total-requests">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Success Rate</span>
+                            <span class="font-semibold text-green-600" id="success-rate">100%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-history mr-2"></i>Recent Activity
+                </h3>
+                <div id="recent-activity" class="space-y-2 max-h-64 overflow-y-auto">
+                    <div class="text-gray-500 italic">No recent activity</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authentication Tab -->
+        <div id="auth" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Login Form -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-sign-in-alt mr-2 text-green-500"></i>Login
+                    </h3>
+                    <form id="login-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Username</label>
+                            <input type="text" id="login-username" 
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Enter username">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="login-password"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Enter password">
+                        </div>
+                        <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Login
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Register Form -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-user-plus mr-2 text-purple-500"></i>Register
+                    </h3>
+                    <form id="register-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Username</label>
+                            <input type="text" id="register-username"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Choose username">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="register-email"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Enter email">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                            <input type="text" id="register-fullname"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Enter full name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Role</label>
+                            <select id="register-role" 
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="student">Student</option>
+                                <option value="organizer">Organizer</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="register-password"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Create password">
+                        </div>
+                        <button type="submit" class="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded">
+                            <i class="fas fa-user-plus mr-2"></i>Register
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Auth Testing -->
+            <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-shield-alt mr-2 text-blue-500"></i>Authentication Testing
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button id="test-protected" class="bg-blue-500 hover:bg-blue-600 text-white py-2 rounded">
+                        Test Protected Route
+                    </button>
+                    <button id="test-admin" class="bg-red-500 hover:bg-red-600 text-white py-2 rounded">
+                        Test Admin Route
+                    </button>
+                    <button id="auth-health" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">
+                        Auth Health Check
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduler Agent Tab -->
+        <div id="scheduler" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Conflict Detection -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-calendar-times mr-2 text-red-500"></i>Conflict Detection
+                    </h3>
+                    <form id="conflict-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Start Time</label>
+                            <input type="datetime-local" id="conflict-start" 
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">End Time</label>
+                            <input type="datetime-local" id="conflict-end"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Venue</label>
+                            <select id="conflict-venue" 
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="Main Auditorium">Main Auditorium</option>
+                                <option value="Conference Hall A">Conference Hall A</option>
+                                <option value="Conference Hall B">Conference Hall B</option>
+                                <option value="Outdoor Amphitheater">Outdoor Amphitheater</option>
+                                <option value="Library Seminar Room">Library Seminar Room</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded">
+                            Check for Conflicts
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Event Creation -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-plus-circle mr-2 text-green-500"></i>Create Event
+                    </h3>
+                    <form id="event-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Event Title</label>
+                            <input type="text" id="event-title"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Enter event title">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea id="event-description" rows="3"
+                                      class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Enter event description"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Category</label>
+                            <select id="event-category"
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="academic_conference">Academic Conference</option>
+                                <option value="cultural_festival">Cultural Festival</option>
+                                <option value="technical_workshop">Technical Workshop</option>
+                                <option value="career_fair">Career Fair</option>
+                                <option value="sports_event">Sports Event</option>
+                                <option value="student_organization">Student Organization</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Capacity</label>
+                            <input type="number" id="event-capacity"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="50" min="1" max="10000">
+                        </div>
+                        <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded">
+                            Create Event
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Display -->
+            <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-bar mr-2"></i>Results
+                </h3>
+                <div id="scheduler-results" class="space-y-4">
+                    <div class="text-gray-500 italic">No results yet. Try checking for conflicts or creating an event.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow Agent Tab -->
+        <div id="flow" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">
+                    <i class="fas fa-sitemap mr-2 text-purple-500"></i>Event Flow Generation
+                </h3>
+                
+                <!-- Quick Templates -->
+                <div class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button class="flow-template-btn p-3 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+                            data-template="tech-conference">
+                        <i class="fas fa-laptop-code text-purple-500 text-2xl mb-2 block"></i>
+                        <span class="text-sm font-medium">Tech Conference</span>
+                    </button>
+                    <button class="flow-template-btn p-3 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+                            data-template="cultural-festival">
+                        <i class="fas fa-music text-purple-500 text-2xl mb-2 block"></i>
+                        <span class="text-sm font-medium">Cultural Festival</span>
+                    </button>
+                    <button class="flow-template-btn p-3 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+                            data-template="workshop">
+                        <i class="fas fa-tools text-purple-500 text-2xl mb-2 block"></i>
+                        <span class="text-sm font-medium">Workshop</span>
+                    </button>
+                    <button class="flow-template-btn p-3 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+                            data-template="career-fair">
+                        <i class="fas fa-briefcase text-purple-500 text-2xl mb-2 block"></i>
+                        <span class="text-sm font-medium">Career Fair</span>
+                    </button>
+                </div>
+                
+                <!-- Flow Generation Form -->
+                <form id="flow-form" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Event Name</label>
+                        <input type="text" id="flow-event-name"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                               placeholder="Enter event name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Event Type</label>
+                        <select id="flow-event-type"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+                            <option value="academic_conference">Academic Conference</option>
+                            <option value="cultural_festival">Cultural Festival</option>
+                            <option value="technical_workshop">Technical Workshop</option>
+                            <option value="career_fair">Career Fair</option>
+                            <option value="networking_event">Networking Event</option>
+                            <option value="student_meeting">Student Meeting</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Duration (hours)</label>
+                        <input type="number" id="flow-duration" min="0.5" max="12" step="0.5"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                               placeholder="2.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Audience Size</label>
+                        <input type="number" id="flow-audience-size" min="5" max="5000"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                               placeholder="100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Budget Range</label>
+                        <select id="flow-budget-range"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+                            <option value="Low">Low ($100-$500)</option>
+                            <option value="Medium">Medium ($500-$2000)</option>
+                            <option value="High">High ($2000+)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Venue Type</label>
+                        <input type="text" id="flow-venue-type"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                               placeholder="e.g., Large auditorium, Outdoor space">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Special Requirements</label>
+                        <textarea id="flow-special-requirements" rows="3"
+                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                  placeholder="Any special requirements for the event"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="flex space-x-4">
+                            <button type="submit" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-2 rounded">
+                                Generate Flow
+                            </button>
+                            <button type="button" id="flow-health-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded">
+                                Health Check
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Flow Results -->
+            <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-line mr-2"></i>Generated Flow
+                </h3>
+                <div id="flow-results" class="space-y-4">
+                    <div class="text-gray-500 italic">No flow generated yet. Fill out the form above and click "Generate Flow".</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sponsor Agent Tab -->
+        <div id="sponsor" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">
+                    <i class="fas fa-handshake mr-2 text-orange-500"></i>Sponsor Recommendation
+                </h3>
+                
+                <!-- Sponsor Form -->
+                <form id="sponsor-form" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Event Type</label>
+                        <select id="sponsor-event-type"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500">
+                            <option value="academic_conference">Academic Conference</option>
+                            <option value="cultural_festival">Cultural Festival</option>
+                            <option value="technical_workshop">Technical Workshop</option>
+                            <option value="career_fair">Career Fair</option>
+                            <option value="sports_event">Sports Event</option>
+                            <option value="networking_event">Networking Event</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Event Name</label>
+                        <input type="text" id="sponsor-event-name"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                               placeholder="Enter event name for outreach">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Budget Range</label>
+                        <select id="sponsor-budget-range"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500">
+                            <option value="Low">Low ($100-$500)</option>
+                            <option value="Medium">Medium ($500-$2000)</option>
+                            <option value="High">High ($2000+)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Expected Audience Size</label>
+                        <input type="number" id="sponsor-audience-size" min="5" max="5000"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                               placeholder="100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Target Demographics</label>
+                        <input type="text" id="sponsor-demographics"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                               placeholder="e.g., Computer Science students, professionals">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Additional Context</label>
+                        <textarea id="sponsor-context" rows="2"
+                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                                  placeholder="Any additional information about the event"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="flex space-x-4">
+                            <button type="submit" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded">
+                                Get Sponsor Recommendations
+                            </button>
+                            <button type="button" id="sponsor-health-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded">
+                                Health Check
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Sponsor Results -->
+            <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-trophy mr-2"></i>Sponsor Recommendations
+                </h3>
+                <div id="sponsor-results" class="space-y-4">
+                    <div class="text-gray-500 italic">No recommendations yet. Fill out the form above and click "Get Sponsor Recommendations".</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Agent Tab -->
+        <div id="content" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">
+                    <i class="fas fa-edit mr-2 text-teal-500"></i>Content Generation
+                </h3>
+                
+                <!-- Content Generation Form -->
+                <form id="content-form" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Event Name *</label>
+                        <input type="text" id="content-event-name"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"
+                               placeholder="Enter event name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Event Type *</label>
+                        <select id="content-event-type"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                            <option value="academic_conference">Academic Conference</option>
+                            <option value="cultural_festival">Cultural Festival</option>
+                            <option value="technical_workshop">Technical Workshop</option>
+                            <option value="career_fair">Career Fair</option>
+                            <option value="sports_event">Sports Event</option>
+                            <option value="networking_event">Networking Event</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Content Type</label>
+                        <select id="content-type"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                            <option value="description">Event Description</option>
+                            <option value="social_media">Social Media Post</option>
+                            <option value="email">Email Invitation</option>
+                            <option value="flyer">Flyer Content</option>
+                            <option value="announcement">Official Announcement</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tone</label>
+                        <select id="content-tone"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                            <option value="professional">Professional</option>
+                            <option value="casual">Casual</option>
+                            <option value="exciting">Exciting</option>
+                            <option value="formal">Formal</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Length</label>
+                        <select id="content-length"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                            <option value="short">Short (1-2 paragraphs)</option>
+                            <option value="medium">Medium (3-4 paragraphs)</option>
+                            <option value="long">Long (5+ paragraphs)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Target Audience</label>
+                        <input type="text" id="content-audience"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"
+                               placeholder="e.g., Students and faculty" value="Students and faculty">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Event Description (Optional)</label>
+                        <textarea id="content-description" rows="2"
+                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"
+                                  placeholder="Brief description of the event"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Key Points (One per line)</label>
+                        <textarea id="content-key-points" rows="3"
+                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"
+                                  placeholder="Networking opportunities
+Interactive sessions
+Expert speakers"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Call to Action</label>
+                        <input type="text" id="content-cta"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"
+                               placeholder="e.g., Register now">
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="flex space-x-4">
+                            <button type="submit" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white py-2 rounded">
+                                Generate Content
+                            </button>
+                            <button type="button" id="content-health-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded">
+                                Health Check
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Content Results -->
+            <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-file-alt mr-2"></i>Generated Content
+                </h3>
+                <div id="content-results" class="space-y-4">
+                    <div class="text-gray-500 italic">No content generated yet. Fill out the form above and click "Generate Content".</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Agent Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6">
+                    <i class="fas fa-chart-pie mr-2 text-indigo-500"></i>Analytics & Insights
+                </h3>
+                
+                <!-- Analytics Form -->
+                <form id="analytics-form" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Event Name *</label>
+                        <input type="text" id="analytics-event-name"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                               placeholder="Enter event name for analysis">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Event Type *</label>
+                        <select id="analytics-event-type"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="academic_conference">Academic Conference</option>
+                            <option value="cultural_festival">Cultural Festival</option>
+                            <option value="technical_workshop">Technical Workshop</option>
+                            <option value="career_fair">Career Fair</option>
+                            <option value="sports_event">Sports Event</option>
+                            <option value="networking_event">Networking Event</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Analysis Type</label>
+                        <select id="analytics-type"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="overview">Overview Analysis</option>
+                            <option value="attendance">Attendance Analysis</option>
+                            <option value="engagement">Engagement Analysis</option>
+                            <option value="performance">Performance Analysis</option>
+                            <option value="financial">Financial Analysis</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Time Period</label>
+                        <select id="analytics-period"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="event">Event Period</option>
+                            <option value="pre-event">Pre-Event</option>
+                            <option value="post-event">Post-Event</option>
+                            <option value="full">Full Campaign</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="flex space-x-4">
+                            <button type="submit" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded">
+                                Generate Analytics
+                            </button>
+                            <button type="button" id="analytics-health-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded">
+                                Health Check
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Quick Analytics Templates -->
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="p-4 border-2 border-indigo-200 rounded-lg text-center">
+                        <i class="fas fa-users text-indigo-500 text-2xl mb-2"></i>
+                        <h4 class="font-medium text-sm">Sample Conference</h4>
+                        <p class="text-xs text-gray-600">Tech Innovation Summit 2025</p>
+                        <button onclick="window.dashboard.fillAnalyticsTemplate('conference')" class="mt-2 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">Use Template</button>
+                    </div>
+                    <div class="p-4 border-2 border-indigo-200 rounded-lg text-center">
+                        <i class="fas fa-music text-indigo-500 text-2xl mb-2"></i>
+                        <h4 class="font-medium text-sm">Sample Festival</h4>
+                        <p class="text-xs text-gray-600">Annual Cultural Celebration</p>
+                        <button onclick="window.dashboard.fillAnalyticsTemplate('festival')" class="mt-2 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">Use Template</button>
+                    </div>
+                    <div class="p-4 border-2 border-indigo-200 rounded-lg text-center">
+                        <i class="fas fa-briefcase text-indigo-500 text-2xl mb-2"></i>
+                        <h4 class="font-medium text-sm">Sample Career Fair</h4>
+                        <p class="text-xs text-gray-600">Spring Career Fair 2025</p>
+                        <button onclick="window.dashboard.fillAnalyticsTemplate('career')" class="mt-2 text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">Use Template</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Results -->
+            <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-line mr-2"></i>Analytics Report
+                </h3>
+                <div id="analytics-results" class="space-y-4">
+                    <div class="text-gray-500 italic">No analytics generated yet. Fill out the form above and click "Generate Analytics".</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Other tabs will continue in separate files due to length -->
+        <!-- This is Part 1 of the mock frontend -->
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification bg-white border-l-4 border-green-500 p-4 shadow-lg rounded">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i id="notification-icon" class="fas fa-check-circle text-green-500"></i>
+            </div>
+            <div class="ml-3">
+                <p id="notification-message" class="text-sm text-gray-700"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="mock-frontend.js"></script>
+    <script>
+        // Initialize the dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.dashboard = new ApokriaTestingDashboard();
+            
+            // Add event listeners for agent forms
+            const conflictForm = document.getElementById('conflict-form');
+            const eventForm = document.getElementById('event-form');
+            const flowForm = document.getElementById('flow-form');
+            const sponsorForm = document.getElementById('sponsor-form');
+            const contentForm = document.getElementById('content-form');
+            const analyticsForm = document.getElementById('analytics-form');
+            
+            if (conflictForm) {
+                conflictForm.addEventListener('submit', (e) => window.dashboard.handleConflictForm(e));
+            }
+            if (eventForm) {
+                eventForm.addEventListener('submit', (e) => window.dashboard.handleEventForm(e));
+            }
+            if (flowForm) {
+                flowForm.addEventListener('submit', (e) => window.dashboard.handleFlowForm(e));
+            }
+            if (sponsorForm) {
+                sponsorForm.addEventListener('submit', (e) => window.dashboard.handleSponsorForm(e));
+            }
+            if (contentForm) {
+                contentForm.addEventListener('submit', (e) => window.dashboard.handleContentForm(e));
+            }
+            if (analyticsForm) {
+                analyticsForm.addEventListener('submit', (e) => window.dashboard.handleAnalyticsForm(e));
+            }
+            
+            // Add event listeners for template and health check buttons
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('flow-template-btn')) {
+                    window.dashboard.applyFlowTemplate(e);
+                }
+                if (e.target.id === 'flow-health-btn') {
+                    window.dashboard.checkFlowHealth();
+                }
+                if (e.target.id === 'sponsor-health-btn') {
+                    window.dashboard.checkSponsorHealth();
+                }
+                if (e.target.id === 'content-health-btn') {
+                    window.dashboard.checkContentHealth();
+                }
+                if (e.target.id === 'analytics-health-btn') {
+                    window.dashboard.checkAnalyticsHealth();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { AnimatePresence } from 'motion/react';
-import Toast from '../components/Toast';
+import { createContext, useContext, useState, ReactNode } from "react";
+import { AnimatePresence } from "framer-motion";
+import Toast from "../components/Toast";
 
 interface ToastProps {
   id: string;
