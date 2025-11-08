@@ -56,4 +56,10 @@ export const api = {
       ? j(`/events/${id}/outreach/generate`, { method: "POST" })
       : Promise.resolve(mock.genOutreach(id));
   },
+
+  deleteEvent(id: string): Promise<void> {
+    return BASE
+      ? j<void>(`/events/${id}`, { method: "DELETE" })
+      : Promise.resolve(mock.deleteEvent(id));
+  },
 };

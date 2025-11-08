@@ -104,4 +104,10 @@ export const mock = {
     };
     save(db);
   },
+
+  deleteEvent(id: string): void {
+    const db = load();
+    db.events = db.events.filter((e: Event) => e.id !== id);
+    save(db);
+  },
 };

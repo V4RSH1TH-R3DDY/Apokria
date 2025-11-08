@@ -5,3 +5,68 @@
 :root {
   color-scheme: dark;
 }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  height: 100%;
+  width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: inherit;
+}
+
+input, textarea, select {
+  outline: none;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+}
+
+/* Global Scrollbar Styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.4) rgba(15, 23, 42, 0.3);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 5px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.4) 0%, rgba(6, 182, 212, 0.4) 100%);
+  border-radius: 5px;
+  border: 2px solid rgba(15, 23, 42, 0.2);
+  transition: all 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.6) 0%, rgba(6, 182, 212, 0.6) 100%);
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.8) 0%, rgba(6, 182, 212, 0.8) 100%);
+}
+
+*::-webkit-scrollbar-corner {
+  background: rgba(15, 23, 42, 0.3);
+}
