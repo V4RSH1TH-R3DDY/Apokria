@@ -7,11 +7,11 @@ import os
 import logging
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
-import google.generativeai as genai
 from datetime import datetime, timedelta
 
 from agents.prompts.flow_prompts import build_context_prompt, EVENT_TYPE_TEMPLATES
 from utils.api_helpers import AgentHelper
+from utils.llm import generate_text
 
 logger = logging.getLogger(__name__)
 
@@ -44,26 +44,8 @@ class FlowAgent:
     """
     
     def __init__(self):
-        self.model = None
-        self._initialize_gemini()
-    
-    def _initialize_gemini(self):
-        """Initialize Google Gemini AI model"""
-        try:
-            api_key = os.getenv("GOOGLE_GEMINI_API_KEY")
-            if not api_key or api_key == "your-google-gemini-api-key-here":
-                logger.warning("Google Gemini API key not configured")
-                return
-            
-            genai.configure(api_key=api_key)
-            
-            # Use Gemini Pro model
-            self.model = genai.GenerativeModel('gemini-pro')
-            logger.info("Google Gemini AI initialized successfully")
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize Google Gemini: {e}")
-            self.model = None
+        # No direct provider initialization here; use `utils.llm` wrapper at call time
+        pass
     
     def _validate_request(self, request: FlowRequest) -> None:
         """Validate flow generation request"""
@@ -179,8 +161,29 @@ class FlowAgent:
                 }
             )
             
-            if not self.model:
-                logger.warning("Gemini not available, using fallback flow")
+            # Use LLM wrapper (Gemini or OpenAI) if available
+            try:
+                prompt = build_context_prompt(
+                    event_name=request.event_name,
+                    event_type=request.event_type,
+                    duration=request.duration,
+                    audience_size=request.audience_size or 100,
+                    budget_range=request.budget_range or "Medium",
+                    venue_type=request.venue_type or "Indoor campus facility",
+                    special_requirements=request.special_requirements or "None"
+                )
+
+                if request.additional_context:
+                    prompt += f"\n\n**ADDITIONAL CONTEXT:**\n{request.additional_context}"
+
+                logger.info(f"Generating flow for {request.event_name} using configured LLM")
+                generated_flow = generate_text(prompt, max_tokens=1200)
+
+                if not generated_flow:
+                    raise ValueError("LLM returned empty response")
+
+            except Exception as e:
+                logger.warning(f"LLM generation failed or not configured: {e}. Using fallback flow.")
                 generated_flow = self._get_fallback_flow(request)
                 
                 return FlowResponse(
@@ -197,7 +200,8 @@ class FlowAgent:
                     created_at=datetime.utcnow().isoformat()
                 )
             
-            # Build sophisticated prompt
+            # We already generated `generated_flow` above using the configured LLM.
+            # Build prompt again for metadata tracking (if needed)
             prompt = build_context_prompt(
                 event_name=request.event_name,
                 event_type=request.event_type,
@@ -207,30 +211,18 @@ class FlowAgent:
                 venue_type=request.venue_type or "Indoor campus facility",
                 special_requirements=request.special_requirements or "None"
             )
-            
-            # Add additional context if provided
+
             if request.additional_context:
                 prompt += f"\n\n**ADDITIONAL CONTEXT:**\n{request.additional_context}"
-            
-            # Generate with Gemini
-            logger.info(f"Generating flow for {request.event_name} using Gemini")
-            response = self.model.generate_content(prompt)
-            
-            if not response.text:
-                raise ValueError("Gemini returned empty response")
-            
-            generated_flow = response.text.strip()
-            
-            # Create response
+
             flow_response = FlowResponse(
                 event_name=request.event_name,
                 event_type=request.event_type,
                 duration=request.duration,
                 generated_flow=generated_flow,
                 metadata={
-                    "generator": "google_gemini",
-                    "ai_model": "gemini-pro", 
-                    "prompt_length": len(prompt),
+                    "generator": "llm",
+                    "prompt_length": len(prompt) if 'prompt' in locals() else 0,
                     "response_length": len(generated_flow),
                     "event_type_template": request.event_type in EVENT_TYPE_TEMPLATES
                 },
@@ -305,11 +297,11 @@ class FlowAgent:
     def health_check(self) -> Dict[str, Any]:
         """Check FlowAgent health and capabilities"""
         return {
-            "gemini_available": self.model is not None,
+            "llm_configured": bool(os.getenv("GOOGLE_GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")),
             "supported_event_types": len(EVENT_TYPE_TEMPLATES),
             "fallback_available": True,
             "max_duration_hours": 72,
-            "api_configured": bool(os.getenv("GOOGLE_GEMINI_API_KEY"))
+            "api_configured": bool(os.getenv("GOOGLE_GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY"))
         }
 
 # Global flow agent instance

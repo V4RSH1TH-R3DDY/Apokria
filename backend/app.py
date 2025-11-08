@@ -4,7 +4,9 @@ from utils.api_helpers import APIResponse, EventValidator
 from agents.scheduler import scheduler_agent
 from agents.flow import flow_agent, FlowRequest
 from agents.sponsor import SponsorAgent
+from agents.content import content_agent
 from database.firebase_connection import init_firebase, close_firebase
+from database.mongo_connection import init_database, close_database
 from pydantic import BaseModel
 from typing import Optional
 import os
@@ -34,6 +36,11 @@ async def startup_event():
     """Initialize database connections on startup"""
     try:
         await init_firebase()
+        # Initialize MongoDB (if configured)
+        try:
+            await init_database()
+        except Exception as e:
+            print(f"MongoDB init failed or not configured: {e}")
     except Exception as e:
         # Firebase not configured, continue without it
         print(f"Firebase not available: {e}")
@@ -46,6 +53,10 @@ async def shutdown_event():
         await close_firebase()
     except Exception:
         pass
+    try:
+        await close_database()
+    except Exception as e:
+        print(f"Error closing MongoDB connection: {e}")
 
 # Pydantic models for request/response
 class ConflictCheckRequest(BaseModel):
@@ -309,19 +320,26 @@ async def recommend_sponsors(request: SponsorRecommendationRequest):
     """
     try:
         # Get sponsor recommendations from SponsorAgent
-        recommendations = sponsor_agent.recommend_sponsors(
+        recommendations = sponsor_agent.get_sponsor_recommendations(
             event_type=request.event_type,
-            budget_range=request.budget_range,
-            audience_size=request.audience_size,
-            target_demographics=request.target_demographics
+            event_name=request.event_name,
+            budget=request.budget_range,
+            location=None,
+            max_recommendations=5
         )
-        
+
+        # Build a simple event_details dict for email generation
+        event_details = {
+            "event_name": request.event_name or f"{request.event_type.replace('_', ' ').title()} Event",
+            "event_type": request.event_type,
+            "expected_attendance": request.audience_size,
+            "objectives": request.additional_context or ""
+        }
+
         # Generate outreach email using LLM
         outreach_email = sponsor_agent.generate_outreach_email(
-            event_name=request.event_name or f"{request.event_type.replace('_', ' ').title()} Event",
-            event_type=request.event_type,
-            sponsors=recommendations,
-            additional_context=request.additional_context
+            sponsor=recommendations[0]['sponsor'] if recommendations else {},
+            event_details=event_details
         )
         
         return APIResponse.success(
@@ -370,11 +388,41 @@ async def sponsor_agent_health():
         raise HTTPException(status_code=500, detail=f"Sponsor health check failed: {str(e)}")
 
 @app.post("/api/content")
-async def generate_content():
-    """Content Agent - Generate emails, banners, etc."""
-    return APIResponse.success(
-        message="Content generation agent endpoint - ready for implementation"
-    )
+async def generate_content(request: dict):
+    """Generic content endpoint that routes to specific content generation.
+
+    Expected request shape:
+    {
+        "type": "email" | "social" | "banner",
+        "event": {...},
+        // optional params per type
+    }
+    """
+    try:
+        body = request
+        ctype = body.get("type")
+        event = body.get("event") or {}
+
+        if ctype == "email":
+            tone = body.get("tone", "professional")
+            length = body.get("length", "short")
+            result = content_agent.generate_email(event, tone=tone, length=length)
+            return APIResponse.success(data={"content": result}, message="Email generated")
+
+        if ctype == "social":
+            platform = body.get("platform", "twitter")
+            length = body.get("length", 280)
+            result = content_agent.generate_social_post(event, platform=platform, length=length)
+            return APIResponse.success(data={"content": result}, message="Social post generated")
+
+        if ctype == "banner":
+            size = body.get("size", "hero")
+            result = content_agent.generate_banner_text(event, size=size)
+            return APIResponse.success(data={"content": result}, message="Banner text generated")
+
+        return APIResponse.error("Invalid content type", status_code=400)
+    except Exception as e:
+        return APIResponse.error(f"Content generation failed: {e}", status_code=500)
 
 @app.get("/api/analytics")
 async def get_analytics():

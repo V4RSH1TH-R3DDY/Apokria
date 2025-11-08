@@ -10,6 +10,7 @@ from firebase_admin import credentials, firestore
 from typing import Optional, Dict, Any
 import logging
 from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -24,24 +25,63 @@ class FirebaseManager:
         """Initialize Firebase Admin SDK"""
         try:
             if not firebase_admin._apps:
+                # First try default credentials
+                try:
+                    self.app = firebase_admin.initialize_app()
+                    logger.info("Firebase initialized with default credentials")
+                    return
+                except Exception as e:
+                    logger.warning(f"Failed to initialize with default credentials: {e}")
+                
                 # Check for service account key file
                 service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
-                
-                if service_account_path and os.path.exists(service_account_path):
-                    # Use service account file
-                    cred = credentials.Certificate(service_account_path)
-                    self.app = firebase_admin.initialize_app(cred)
-                else:
-                    # Use service account JSON from environment variable
-                    service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
-                    if service_account_json:
-                        service_account_info = json.loads(service_account_json)
+
+                # If a relative path is provided, resolve it relative to the backend folder
+                if service_account_path:
+                    candidate = Path(service_account_path)
+                    if not candidate.is_absolute():
+                        # Resolve relative to repository backend directory (two levels up from this file)
+                        repo_backend = Path(__file__).resolve().parents[1]
+                        candidate = (repo_backend / service_account_path).resolve()
+
+                    if candidate.exists():
+                        # Use service account file
+                        abs_path = str(candidate)
+                        logger.info(f"Using Firebase service account file at: {abs_path}")
+                        # Read and parse the JSON file directly
+                        with open(abs_path, 'r') as f:
+                            service_account_info = json.load(f)
+                        # Also set GOOGLE_APPLICATION_CREDENTIALS for libraries that rely on it
+                        os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", abs_path)
                         cred = credentials.Certificate(service_account_info)
                         self.app = firebase_admin.initialize_app(cred)
                     else:
-                        # Use default credentials (for local development)
-                        logger.warning("No Firebase credentials found. Using default credentials.")
-                        self.app = firebase_admin.initialize_app()
+                        logger.debug(f"FIREBASE_SERVICE_ACCOUNT_PATH set but file not found at {candidate}")
+
+                # If we haven't initialized yet, try FIREBASE_SERVICE_ACCOUNT_JSON
+                if not self.app:
+                    service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+                    if service_account_json:
+                        try:
+                            # Accept either a JSON string or a Python-like dict string
+                            service_account_info = json.loads(service_account_json)
+                        except Exception:
+                            # Try to fix common issues (single quotes or escaped newlines)
+                            try:
+                                cleaned = service_account_json.replace("'", '"')
+                                service_account_info = json.loads(cleaned)
+                            except Exception:
+                                # As a last resort, attempt to evaluate using ast (safer to fail loudly)
+                                import ast
+                                service_account_info = ast.literal_eval(service_account_json)
+
+                        cred = credentials.Certificate(service_account_info)
+                        self.app = firebase_admin.initialize_app(cred)
+
+                # If still not initialized, fall back to default credentials
+                if not self.app:
+                    logger.warning("No Firebase credentials found. Using default credentials.")
+                    self.app = firebase_admin.initialize_app()
                         
                 logger.info("Firebase Admin SDK initialized successfully")
             else:

@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import logging
+from typing import Dict, Any
+from utils.mongo_logger import schedule_log
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +142,12 @@ class AgentHelper:
             log_data["details"] = details
             
         logger.info(f"Agent Action: {log_data}")
+        # Schedule a background write to MongoDB for analytics/audit
+        try:
+            schedule_log("agent_logs", log_data)
+        except Exception:
+            # Never raise from logging
+            pass
 
 def create_response(success: bool = True, data: Any = None, message: str = None) -> JSONResponse:
     """Create standardized JSON response"""
