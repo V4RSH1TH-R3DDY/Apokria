@@ -8,10 +8,10 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
-import google.generativeai as genai
 import os
 
 from utils.api_helpers import AgentHelper
+from utils.llm import generate_text
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,8 @@ class SponsorAgent:
     
     def __init__(self):
         self.sponsors_data = self._load_sponsors_data()
-        self.gemini_model = self._initialize_gemini()
-        
+        # Use shared LLM wrapper at call time; no direct Gemini init here
+
     def _load_sponsors_data(self) -> Dict[str, Any]:
         """Load sponsors data from JSON file"""
         try:
@@ -35,21 +35,7 @@ class SponsorAgent:
             logger.error(f"Failed to load sponsors data: {e}")
             return {"sponsors": [], "event_type_mappings": {}}
     
-    def _initialize_gemini(self):
-        """Initialize Google Gemini for email generation"""
-        try:
-            api_key = os.getenv("GOOGLE_GEMINI_API_KEY")
-            if not api_key:
-                logger.warning("Google Gemini API key not configured")
-                return None
-                
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-pro')
-            logger.info("Google Gemini initialized successfully")
-            return model
-        except Exception as e:
-            logger.error(f"Failed to initialize Gemini: {e}")
-            return None
+    # Removed direct Gemini initialization - use utils.llm.generate_text when generating emails
     
     def _calculate_match_score(self, sponsor: Dict[str, Any], event_type: str, budget: float = None) -> float:
         """
@@ -187,27 +173,25 @@ class SponsorAgent:
         Returns:
             Personalized email content
         """
-        if not self.gemini_model:
-            return self._generate_fallback_email(sponsor, event_details)
-        
+        # Use generic LLM wrapper (Gemini or OpenAI) when available
         try:
             prompt = self._create_email_prompt(sponsor, event_details)
-            response = self.gemini_model.generate_content(prompt)
-            
+            text = generate_text(prompt, max_tokens=800)
+
             AgentHelper.log_agent_action(
                 agent_name="SponsorAgent",
                 action="email_generated",
                 details={
                     "sponsor_name": sponsor.get("name"),
                     "event_name": event_details.get("event_name"),
-                    "email_length": len(response.text) if response.text else 0
+                    "email_length": len(text) if text else 0
                 }
             )
-            
-            return response.text if response.text else self._generate_fallback_email(sponsor, event_details)
-            
+
+            return text if text else self._generate_fallback_email(sponsor, event_details)
+
         except Exception as e:
-            logger.error(f"Error generating email with Gemini: {e}")
+            logger.error(f"Error generating email with LLM: {e}")
             return self._generate_fallback_email(sponsor, event_details)
     
     def _create_email_prompt(self, sponsor: Dict[str, Any], event_details: Dict[str, Any]) -> str:
