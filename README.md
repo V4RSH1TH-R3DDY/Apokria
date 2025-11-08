@@ -366,6 +366,6 @@ GenAI/
 
 ✨ **Apokria makes campus events effortless.** Use this playbook to rally your team, ship fast, and wow the judges.
 
-Team Name: THE 4 HORSEMEN OF THE APOCALYPSE
+Team Name: Alt+F4
 
 Team Members: Ananya, Sunidhi, Varshith, Harsh
