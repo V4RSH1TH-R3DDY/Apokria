@@ -55,8 +55,8 @@ async def shutdown_event():
         pass
     try:
         await close_database()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error closing MongoDB connection: {e}")
 
 # Pydantic models for request/response
 class ConflictCheckRequest(BaseModel):
