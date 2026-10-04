@@ -41,12 +41,11 @@ def _init_openai(api_key: str):
     global _openai
     if _openai is None:
         try:
-            import openai
-            _openai = openai
+            from openai import OpenAI
+            _openai = OpenAI(api_key=api_key)
         except Exception as e:
             logger.error(f"Failed to import openai: {e}")
             raise
-    _openai.api_key = api_key
     return _openai
 
 
@@ -108,24 +107,20 @@ def generate_text(prompt: str, *, max_tokens: int = 1024, temperature: float = 0
         if not api_key:
             raise RuntimeError("OpenAI API key not configured (OPENAI_API_KEY)")
 
-        openai = _init_openai(api_key)
+        client = _init_openai(api_key)
         chosen_model = model or os.getenv("OPENAI_MODEL") or "gpt-3.5-turbo"
 
         try:
-            # Use ChatCompletion for robust format
-            response = openai.ChatCompletion.create(
+            # Use the modern client-based API (OpenAI >= 1.0.0)
+            response = client.chat.completions.create(
                 model=chosen_model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature,
             )
-            # Extract text
-            choices = response.get("choices", [])
-            if choices:
-                message = choices[0].get("message") or choices[0]
-                if isinstance(message, dict):
-                    return message.get("content", "").strip()
-                return str(message)
+            # Extract text from the response
+            if response.choices:
+                return response.choices[0].message.content.strip()
             return ""
         except Exception as e:
             logger.error(f"OpenAI generation failed: {e}")
